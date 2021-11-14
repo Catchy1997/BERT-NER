@@ -102,3 +102,13 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# files
+datasets/query/data/*.json
+datasets/query/data/*.csv
+datasets/query/wuting/
+datasets/query/*.json
+datasets/query/cached*
+datasets/query_infer/
+outputs/bert/
+outputs/query_output/
