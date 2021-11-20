@@ -114,60 +114,61 @@ if __name__ == '__main__':
 
     args.id2label = {0: "O", 1: "B-QUERY", 2: "I-QUERY", 3: "S-QUERY", 4: "[START]", 5: "[END]", 6: "X"}
 
+    print(args)
     
-    ### set random_seed
-    seed_everything(args.seed)
+    # ### set random_seed
+    # seed_everything(args.seed)
     
-    if not os.path.exists(args.output_dir):
-        os.mkdir(args.output_dir)
-    time_ = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
-    init_logger(log_file=args.output_dir + f'/-{time_}.log')
-    if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and not args.overwrite_output_dir:
-        raise ValueError("Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to overcome.".format(args.output_dir))
+    # if not os.path.exists(args.output_dir):
+    #     os.mkdir(args.output_dir)
+    # time_ = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
+    # init_logger(log_file=args.output_dir + f'/-{time_}.log')
+    # if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and not args.overwrite_output_dir:
+    #     raise ValueError("Output directory ({}) already exists and is not empty. Use --overwrite_output_dir to overcome.".format(args.output_dir))
     
     
-    ### Setup CUDA, GPU & distributed training
-    if args.local_rank in [1, 0]:
-        # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
-        os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
-        # torch.distributed.init_process_group(backend="nccl")
-        torch.cuda.set_device(args.local_rank)
-        device = torch.device("cuda", args.local_rank)
-        args.n_gpu = 1
-    else:
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        args.n_gpu = torch.cuda.device_count()
+    # ### Setup CUDA, GPU & distributed training
+    # if args.local_rank in [1, 0]:
+    #     # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
+    #     os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+    #     # torch.distributed.init_process_group(backend="nccl")
+    #     torch.cuda.set_device(args.local_rank)
+    #     device = torch.device("cuda", args.local_rank)
+    #     args.n_gpu = 1
+    # else:
+    #     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    #     args.n_gpu = torch.cuda.device_count()
         
-    logger.warning("Process rank: %s, device: %s, n_gpu: %s, distributed training: %s", args.local_rank, device, args.n_gpu, bool(args.local_rank != -1))
+    # logger.warning("Process rank: %s, device: %s, n_gpu: %s, distributed training: %s", args.local_rank, device, args.n_gpu, bool(args.local_rank != -1))
 
     
-    ### dataloader
-    logger.info("Training/evaluation parameters %s", args)
+    # ### dataloader
+    # logger.info("Training/evaluation parameters %s", args)
 
-    config = BertConfig.from_pretrained(args.base_path, num_labels=args.num_labels)
-    tokenizer = BertTokenizer.from_pretrained(args.base_path, do_lower_case=True)
+    # config = BertConfig.from_pretrained(args.base_path, num_labels=args.num_labels)
+    # tokenizer = BertTokenizer.from_pretrained(args.base_path, do_lower_case=True)
 
-    test_dataset = load_and_cache_examples(args, tokenizer, path=args.input_dir, data_type='test')
+    # test_dataset = load_and_cache_examples(args, tokenizer, path=args.input_dir, data_type='test')
     
-    logger.info("  Num examples = %d", len(test_dataset))
-    # Note that DistributedSampler samples randomly
-    # test_sampler = SequentialSampler(test_dataset) if args.local_rank == -1 else DistributedSampler(test_dataset)
-    test_sampler = SequentialSampler(test_dataset) if -1 == -1 else DistributedSampler(test_dataset)
-    test_dataloader = DataLoader(dataset=test_dataset, sampler=test_sampler, batch_size=args.batch_size, collate_fn=collate_fn)
+    # logger.info("  Num examples = %d", len(test_dataset))
+    # # Note that DistributedSampler samples randomly
+    # # test_sampler = SequentialSampler(test_dataset) if args.local_rank == -1 else DistributedSampler(test_dataset)
+    # test_sampler = SequentialSampler(test_dataset) if -1 == -1 else DistributedSampler(test_dataset)
+    # test_dataloader = DataLoader(dataset=test_dataset, sampler=test_sampler, batch_size=args.batch_size, collate_fn=collate_fn)
 
 
-    ## load_model
-    model = BertCrfForNer.from_pretrained(args.base_path, config=config)
+    # ## load_model
+    # model = BertCrfForNer.from_pretrained(args.base_path, config=config)
 
-    pretrain_model = torch.load(args.best_model)
-    del pretrain_model['bert.embeddings.position_ids']
-    model.load_state_dict(pretrain_model)
-    model = model.to(device)
+    # pretrain_model = torch.load(args.best_model)
+    # del pretrain_model['bert.embeddings.position_ids']
+    # model.load_state_dict(pretrain_model)
+    # model = model.to(device)
 
-    if args.local_rank != -1 and args.n_gpu > 1:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank], output_device=args.local_rank, broadcast_buffers=False, find_unused_parameters=True)
+    # if args.local_rank != -1 and args.n_gpu > 1:
+    #     model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.local_rank], output_device=args.local_rank, broadcast_buffers=False, find_unused_parameters=True)
     
-    ### predict
-    logger.info("***** Running prediction %s *****", 'bert_model')
-    logger.info("  Batch size = %d", args.batch_size)
-    predict(args, test_dataloader, model, tokenizer, photo_texts=None)
+    # ### predict
+    # logger.info("***** Running prediction %s *****", 'bert_model')
+    # logger.info("  Batch size = %d", args.batch_size)
+    # predict(args, test_dataloader, model, tokenizer, photo_texts=None)

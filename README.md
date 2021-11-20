@@ -1,6 +1,4 @@
-# 基于BERT-NER模型的中文query抽取
-
-![项目整体流程](datasets/query/data/1.png)
+# 基于BERT-NER模型的命名实体识别/中文query抽取模型
 
 
 ## 1.数据预处理
