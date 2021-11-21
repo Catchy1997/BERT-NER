@@ -52,6 +52,7 @@ class InputFeatures(object):
         """Serializes this instance to a JSON string."""
         return json.dumps(self.to_dict(), indent=2, sort_keys=True) + "\n"
 
+
 def collate_fn(batch):
     """
     batch should be a list of (sequence, target, length) tuples...
@@ -63,7 +64,8 @@ def collate_fn(batch):
     all_attention_mask = all_attention_mask[:, :max_len]
     all_token_type_ids = all_token_type_ids[:, :max_len]
     all_labels = all_labels[:,:max_len]
-    return all_input_ids, all_attention_mask, all_token_type_ids, all_labels,all_lens
+    return all_input_ids, all_attention_mask, all_token_type_ids, all_labels, all_lens
+
 
 def convert_examples_to_features(examples,label_list,max_seq_length,tokenizer,
                                  cls_token_at_end=False,cls_token="[CLS]",cls_token_segment_id=1,
@@ -80,8 +82,10 @@ def convert_examples_to_features(examples,label_list,max_seq_length,tokenizer,
     for (ex_index, example) in enumerate(examples):
         if ex_index % 10000 == 0:
             logger.info("Writing example %d of %d", ex_index, len(examples))
+
         tokens = tokenizer.tokenize(example.text_a)
         label_ids = [label_map[x] for x in example.labels]
+
         # Account for [CLS] and [SEP] with "- 2".
         special_tokens_count = 2
         if len(tokens) > max_seq_length - special_tokens_count:
@@ -136,12 +140,17 @@ def convert_examples_to_features(examples,label_list,max_seq_length,tokenizer,
             input_mask += [0 if mask_padding_with_zero else 1] * padding_length
             segment_ids += [pad_token_segment_id] * padding_length
             label_ids += [pad_token] * padding_length
+        
+        if len(label_ids) > max_seq_length:
+            label_ids = label_ids[:max_seq_length]
+        else:
+            label_ids += [pad_token] * (max_seq_length-len(label_ids))
 
         assert len(input_ids) == max_seq_length
         assert len(input_mask) == max_seq_length
         assert len(segment_ids) == max_seq_length
         assert len(label_ids) == max_seq_length
-        if ex_index < 5:
+        if ex_index < 1:
             logger.info("*** Example ***")
             logger.info("guid: %s", example.guid)
             logger.info("tokens: %s", " ".join([str(x) for x in tokens]))
@@ -153,7 +162,6 @@ def convert_examples_to_features(examples,label_list,max_seq_length,tokenizer,
         features.append(InputFeatures(input_ids=input_ids, input_mask=input_mask,input_len = input_len,
                                       segment_ids=segment_ids, label_ids=label_ids))
     return features
-
 
 class CnerProcessor(DataProcessor):
     """Processor for the chinese ner data set."""
@@ -180,8 +188,6 @@ class CnerProcessor(DataProcessor):
         """Creates examples for the training and dev sets."""
         examples = []
         for (i, line) in enumerate(lines):
-            if i == 0:
-                continue
             guid = "%s-%s" % (set_type, i)
             text_a= line['words']
             # BIOS
@@ -232,7 +238,39 @@ class CluenerProcessor(DataProcessor):
             examples.append(InputExample(guid=guid, text_a=text_a, labels=labels))
         return examples
 
+class QueryProcessor(DataProcessor):
+    """Processor for the chinese ner data set."""
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(self._read_json(os.path.join(data_dir, "train.json")), "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(self._read_json(os.path.join(data_dir, "dev.json")), "dev")
+
+    def get_test_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(self._read_json(os.path.join(data_dir, "test.json")), "test")
+
+    def get_labels(self):
+        """See base class."""
+        return ["O", "B-QUERY", "I-QUERY", 'S-QUERY', '[START]', '[END]', 'X']
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            guid = "%s-%s" % (set_type, line['id'])
+            text_a= line['words']
+            # BIOS
+            labels = line['labels']
+            examples.append(InputExample(guid=guid, text_a=text_a, labels=labels))
+        return examples
+
+
 ner_processors = {
     "cner": CnerProcessor,
-    'cluener':CluenerProcessor
+    'cluener':CluenerProcessor,
+    'query': QueryProcessor
 }
